@@ -6,9 +6,21 @@ import cors from "@fastify/cors";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import fastifyJWT from "@fastify/jwt";
+import socketioServer from "fastify-socket.io";
+
+//file upload
+import fastifyStatic from '@fastify/static';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+
 //routes
 import { usersRoutes } from "./routes/users.js";
 import { gamesRoutes } from "./routes/games.js";
+import { mediaRoutes } from "./routes/media.js";
 //bdd
 import { sequelize } from "./bdd.js";
 
@@ -32,13 +44,20 @@ await app
 		saltWorkFactor: 12,
 	})
 	.register(cors, {
-		origin: "*",
+		origin: ["http://localhost:5173"],
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+        exposedHeaders: ["Content-Range", "X-Content-Range"],
+        credentials: true,
+        maxAge: 86400,
+        preflight: true,
+        preflightContinue: true
 	})
 	.register(fastifySwagger, {
 		openapi: {
 			openapi: "3.0.0",
 			info: {
-				title: "Documentation de l'API JDR LOTR",
+				title: "Documentation de l'API du jeu de Memory",
 				description:
 					"API développée pour un exercice avec React avec Fastify et Sequelize",
 				version: "0.1.0",
@@ -48,7 +67,7 @@ await app
 	.register(fastifySwaggerUi, {
 		routePrefix: "/documentation",
 		theme: {
-			title: "Docs - JDR LOTR API",
+			title: "Docs - Memory Game API",
 		},
 		uiConfig: {
 			docExpansion: "list",
@@ -71,6 +90,15 @@ await app
 	})
 	.register(fastifyJWT, {
 		secret: "unanneaupourlesgouvernertous",
+	})
+	.register(fastifyStatic, {
+		root: join(__dirname, '../uploads'),
+		prefix: '/uploads/'
+	})
+	.register(socketioServer, {
+		cors : {
+			origin: "*",
+		}
 	});
 /**********
  * Routes
@@ -98,6 +126,8 @@ app.decorate("authenticate", async (request, reply) => {
 usersRoutes(app,blacklistedTokens);
 //gestion des jeux
 gamesRoutes(app);
+//gestion des medias
+mediaRoutes(app);
 
 /**********
  * START
@@ -124,9 +154,36 @@ const start = async () => {
 				"Accéder à la documentation sur http://localhost:3000/documentation"
 			)
 		);
+
+
+		// Configurer Socket.IO après le démarrage du serveur
+        app.io.on('connection', (socket) => {
+            console.log('New user connected');
+
+            // Événement pour créer une room
+            socket.on('createRoom', (roomName) => {
+                socket.join(roomName);
+                socket.emit('roomCreated', roomName);
+                console.log(`Room created: ${roomName}`);
+            });
+
+            // Événement pour rejoindre une room
+            socket.on('joinRoom', (roomName) => {
+                socket.join(roomName);
+                socket.emit('roomJoined', roomName);
+                console.log(`User joined room: ${roomName}`);
+            });
+
+            socket.on('disconnect', () => {
+                console.log('User disconnected');
+            });
+        });
+
+
 	} catch (err) {
 		console.log(err);
 		process.exit(1);
 	}
+
 };
 start();

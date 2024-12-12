@@ -3,7 +3,10 @@ import {
 	getUsers,
 	loginUser,
 	registerUser,
-	verifyEmailToken
+	verifyEmailToken,
+	calculateUserStats,
+	getUserGames,
+	updateUser
 } from "../controllers/users.js";
 
 export function usersRoutes(app, blacklistedTokens ) {
@@ -37,4 +40,18 @@ export function usersRoutes(app, blacklistedTokens ) {
 		const token = request.query.token;
 		await verifyEmailToken(token, reply); // Passe l'objet reply pour gérer la redirection
 	});
+	app.get("/users/:id/stats", async (request, reply) => {
+		// Calculate stats from games table
+		const stats = await calculateUserStats(request.params.id);
+		reply.send(stats);
+	});
+	app.get("/users/:id/games", async (request, reply) => {
+		reply.send(await getUserGames(request.params.id));
+	});
+	app.patch("/users/:id", 
+		{ preHandler: [app.authenticate] },
+		async (request, reply) => {
+			reply.send(await updateUser(request.params.id, request.body));
+		}
+	);
 }

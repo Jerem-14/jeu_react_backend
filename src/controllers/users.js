@@ -1,4 +1,5 @@
 import User from "../models/users.js";
+import Game from "../models/games.js";
 import { Op } from "sequelize";
 import CryptoJS from "crypto-js";
 import { generateEmailTemplate } from '../emailTemplates/verifyEmailTemplate.mjml.js';
@@ -148,7 +149,7 @@ export async function loginUser(userDatas, app) {
 		{ id: user.id, username: user.username },
 		{ expiresIn: "3h" }
 	);
-	return { token };
+	return { success: true, data: { token, userId: user.id } };
 }
 
 export async function verifyEmailToken(token, reply){
@@ -164,4 +165,91 @@ export async function verifyEmailToken(token, reply){
 
 	await User.update({verified: true}, {where: {id:user.id}});
 	reply.redirect('http://localhost:5173/login?verified=true'); // Redirection vers la page de login
+}
+
+// Add to controllers/users.js
+export async function calculateUserStats(userId) {
+	const games = await Game.findAll({
+	  where: {
+		[Op.or]: [
+		  { creator: userId },
+		  { player: userId }
+		],
+		state: 'finished'
+	  }
+	});
+	
+	let stats = {
+	  totalGames: games.length,
+	  wins: 0,
+	  losses: 0,
+	  ties: 0
+	};
+	
+	games.forEach(game => {
+	  if (game.winner === userId) {
+		stats.wins++;
+	  } else if (game.winner === null) {
+		stats.ties++;
+	  } else {
+		stats.losses++;
+	  }
+	});
+	
+	stats.winRate = stats.totalGames > 0 
+	  ? Math.round((stats.wins / stats.totalGames) * 100) 
+	  : 0;
+	  
+	return stats;
+  }
+
+  export async function getUserGames(userId) {
+	try {
+	  const games = await Game.findAll({
+		where: {
+		  [Op.or]: [
+			{ creator: userId },
+			{ player: userId }
+		  ]
+		},
+		include: [
+		  { model: User, as: 'player1', attributes: ['username'] },
+		  { model: User, as: 'player2', attributes: ['username'] },
+		  { model: User, as: 'winPlayer', attributes: ['username'] }
+		],
+		order: [['createdAt', 'DESC']],
+		limit: 10 // Get last 10 games
+	  });
+  
+	  return { success: true, data: games };
+	} catch (error) {
+	  return { success: false, error: error.message };
+	}
+  }
+
+  export async function updateUser(userId, userData) {
+    try {
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return { error: "User not found" };
+        }
+
+        // Verify username uniqueness if it's being changed
+        if (userData.username && userData.username !== user.username) {
+            const { count } = await findAndCountAllUsersByUsername(userData.username);
+            if (count > 0) {
+                return { error: "Username already taken" };
+            }
+        }
+
+        await user.update({
+            username: userData.username || user.username,
+            firstname: userData.firstname || user.firstname,
+            lastname: userData.lastname || user.lastname
+        });
+
+        return { success: true, data: user };
+    } catch (error) {
+        return { error: error.message };
+    }
 }

@@ -96,9 +96,12 @@ await app
 		prefix: '/uploads/'
 	})
 	.register(socketioServer, {
-		cors : {
-			origin: "*",
-		}
+		cors: {
+			origin: "http://localhost:5173",  // Your React app URL
+			methods: ["GET", "POST"],
+			credentials: true
+		},
+		path: '/socket.io' // Add this explicitly
 	});
 /**********
  * Routes
@@ -176,13 +179,21 @@ const start = async () => {
 
 			// Update the socket.io connection handler
 			socket.on('joinRoom', (data) => {
+				console.log('Join room data received:', data);  // Debug log
 				const { roomId, username, userId } = data;
+				
 				socket.join(roomId);
+				
+				// Debug log
+				console.log(`Emitting playerJoined event to room ${roomId} with data:`, {
+					username,
+					userId
+				});
+				
 				socket.to(roomId).emit('playerJoined', { 
 					username,
-					userId 
+					userId
 				});
-				console.log(`User ${username} (${userId}) joined room: ${roomId}`);
 			});
 
             socket.on('disconnect', () => {

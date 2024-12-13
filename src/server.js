@@ -174,12 +174,15 @@ const start = async () => {
                 console.log(`User joined room: ${roomName}`);
             }); */
 
+			// Update the socket.io connection handler
 			socket.on('joinRoom', (data) => {
-				const { roomId, username } = data;
+				const { roomId, username, userId } = data;
 				socket.join(roomId);
-				// Emit to all clients in the room except the sender
-				socket.to(roomId).emit('playerJoined', { username });
-				console.log(`User ${username} joined room: ${roomId}`);
+				socket.to(roomId).emit('playerJoined', { 
+					username,
+					userId 
+				});
+				console.log(`User ${username} (${userId}) joined room: ${roomId}`);
 			});
 
             socket.on('disconnect', () => {

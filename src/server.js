@@ -161,18 +161,26 @@ const start = async () => {
             console.log('New user connected');
 
             // Événement pour créer une room
-            socket.on('createRoom', (roomName) => {
+            socket.on('createRoom', (roomName, userId) => {
                 socket.join(roomName);
                 socket.emit('roomCreated', roomName);
-                console.log(`Room created: ${roomName}`);
+                console.log(`User ${userId} create a new room: ${roomName}`);
             });
 
             // Événement pour rejoindre une room
-            socket.on('joinRoom', (roomName) => {
+            /* socket.on('joinRoom', (roomName) => {
                 socket.join(roomName);
                 socket.emit('roomJoined', roomName);
                 console.log(`User joined room: ${roomName}`);
-            });
+            }); */
+
+			socket.on('joinRoom', (data) => {
+				const { roomId, username } = data;
+				socket.join(roomId);
+				// Emit to all clients in the room except the sender
+				socket.to(roomId).emit('playerJoined', { username });
+				console.log(`User ${username} joined room: ${roomId}`);
+			});
 
             socket.on('disconnect', () => {
                 console.log('User disconnected');

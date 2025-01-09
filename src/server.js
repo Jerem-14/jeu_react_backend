@@ -170,6 +170,14 @@ const start = async () => {
                 console.log(`User ${userId} create a new room: ${roomName}`);
             });
 
+			socket.on('initiateGameStart', (data) => {
+				console.log('Game start initiated:', data);
+				// Émettre l'événement à tous les joueurs dans la room
+				app.io.to(data.gameId).emit('gameStartConfirmed', {
+					gameId: data.gameId
+				});
+			});
+
             // Événement pour rejoindre une room
             /* socket.on('joinRoom', (roomName) => {
                 socket.join(roomName);

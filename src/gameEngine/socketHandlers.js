@@ -88,6 +88,15 @@ export function setupSocketHandlers(io) {
                     // Émettre l'état actuel
                     io.to(gameId).emit('gameStateUpdate', result.state);
         
+                    // Si la partie est terminée, émettre un événement spécial
+                    if (result.gameOver) {
+                        io.to(gameId).emit('gameOver', {
+                            winners: result.state.winners,
+                            isDraw: result.state.isDraw,
+                            finalScores: result.state.players
+                        });
+                    }
+                    
                     // Si c'est un mismatch, programmer le retournement des cartes
                     if (result.action === 'mismatch') {
                         setTimeout(() => {

@@ -79,7 +79,24 @@ export function handleCardFlip(gameId, playerId, cardIndex) {
             secondCard.isMatched = true;
             game.players[playerId].score += 1;
             game.selectedCards = [];
-            return { success: true, state: gameStateCopy };
+
+
+             
+            // Vérifier si la partie est terminée
+            const gameStatus = isGameFinished(game);
+            if (gameStatus.finished) {
+                game.status = 'finished';
+                game.winners = gameStatus.winners;
+                game.isDraw = gameStatus.isDraw;
+            }
+
+            return { 
+                success: true, 
+                state: { ...game },
+                gameOver: gameStatus.finished
+            };
+
+            //return { success: true, state: gameStateCopy };
         } else {
             // Pas de match
             // On retourne immédiatement un état avec les cartes retournées
@@ -96,7 +113,7 @@ export function handleCardFlip(gameId, playerId, cardIndex) {
         }
     }
 
-    return { success: true, state: gameStateCopy };
+    return { success: true, state: { ...game } };
 }
 
 function getNextPlayer(game, currentPlayerId) {
@@ -116,4 +133,28 @@ function shuffleArray(array) {
 
 export function getGameState(gameId) {
     return games.get(gameId);
+}
+
+function isGameFinished(game) {
+    // Vérifie si toutes les cartes sont matched
+    const allMatched = game.cards.every(card => card.isMatched);
+    
+    if (allMatched) {
+        // Déterminer le gagnant
+        const players = Object.values(game.players);
+        const winner = players.reduce((highest, player) => 
+            player.score > highest.score ? player : highest
+        );
+        
+        // En cas d'égalité, tout le monde est gagnant !
+        const winners = players.filter(player => player.score === winner.score);
+        
+        return {
+            finished: true,
+            winners: winners,
+            isDraw: winners.length > 1
+        };
+    }
+    
+    return { finished: false };
 }

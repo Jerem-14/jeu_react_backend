@@ -1,5 +1,5 @@
 // gameEngine/gameState.js
-const games = new Map();
+export const games = new Map();
 
 export function initializeGame(gameId, creator, media) {
     // Préparer les cartes (doubles des médias pour les paires)
@@ -48,50 +48,55 @@ export function addPlayer(gameId, player) {
 
 export function handleCardFlip(gameId, playerId, cardIndex) {
     const game = games.get(gameId);
-    if (!game) return { success: false, error: 'Game not found' };
+    if (!game) return { success: false, error: 'Partie non trouvée' };
 
     // Vérifier si c'est le tour du joueur
     if (game.currentTurn !== playerId) {
-        return { success: false, error: 'Not your turn' };
+        return { success: false, error: 'Ce n\'est pas votre tour' };
     }
 
     // Vérifier si la carte peut être retournée
-    if (game.cards[cardIndex].isMatched || game.cards[cardIndex].isFlipped) {
-        return { success: false, error: 'Invalid move' };
+    const card = game.cards[cardIndex];
+    if (card.isFlipped || card.isMatched) {
+        return { success: false, error: 'Cette carte ne peut pas être retournée' };
     }
 
     // Retourner la carte
-    game.cards[cardIndex].isFlipped = true;
+    card.isFlipped = true;
     game.selectedCards.push(cardIndex);
 
-    // Si c'est la deuxième carte
-    if (game.selectedCards.length === 2) {
-        const [firstCard, secondCard] = game.selectedCards.map(index => game.cards[index]);
-        
-        // Vérifier si c'est une paire
+    const gameStateCopy = { ...game };
+
+      // Si c'est la deuxième carte
+      if (game.selectedCards.length === 2) {
+        const [firstIndex, secondIndex] = game.selectedCards;
+        const firstCard = game.cards[firstIndex];
+        const secondCard = game.cards[secondIndex];
+
         if (firstCard.mediaId === secondCard.mediaId) {
-            // Marquer les cartes comme trouvées
+            // Match !
             firstCard.isMatched = true;
             secondCard.isMatched = true;
             game.players[playerId].score += 1;
+            game.selectedCards = [];
+            return { success: true, state: gameStateCopy };
         } else {
-            // Programmer le retournement des cartes
-            setTimeout(() => {
-                firstCard.isFlipped = false;
-                secondCard.isFlipped = false;
-                // Changer de tour
-                game.currentTurn = getNextPlayer(game, playerId);
-            }, 1000);
+            // Pas de match
+            // On retourne immédiatement un état avec les cartes retournées
+            return { 
+                success: true, 
+                state: gameStateCopy,
+                action: 'mismatch',
+                data: {
+                    firstIndex,
+                    secondIndex,
+                    nextTurn: getNextPlayer(game, playerId)
+                }
+            };
         }
-        game.selectedCards = [];
     }
 
-    // Vérifier si le jeu est terminé
-    if (game.cards.every(card => card.isMatched)) {
-        game.status = 'finished';
-    }
-
-    return { success: true, game };
+    return { success: true, state: gameStateCopy };
 }
 
 function getNextPlayer(game, currentPlayerId) {

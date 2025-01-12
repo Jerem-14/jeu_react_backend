@@ -1,5 +1,5 @@
 // gameEngine/socketHandlers.js
-import * as gameState from './gameState.js';
+import { games, handleCardFlip, initializeGame, addPlayer, getGameState } from './gameState.js';
 import Media from '../models/media.js';  // Ajout de l'import correct
 
 export function setupSocketHandlers(io) {
@@ -22,7 +22,7 @@ export function setupSocketHandlers(io) {
                 });
                 console.log('Médias récupérés:', mediaResult.length);
                 
-                const state = gameState.initializeGame(gameId, creator, mediaResult);
+                const state = initializeGame(gameId, creator, mediaResult);
                 
                 // Rejoindre la room
                 socket.join(gameId);
@@ -53,7 +53,7 @@ export function setupSocketHandlers(io) {
                     return;
                 }
         
-                const state = gameState.addPlayer(gameId, player);
+                const state = addPlayer(gameId, player);
                 console.log('État retourné par addPlayer:', state);
         
                 if (state) {
@@ -83,11 +83,30 @@ export function setupSocketHandlers(io) {
         socket.on('flipCard', ({ gameId, playerId, cardIndex }) => {
             console.log('Tentative de retournement de carte:', { gameId, playerId, cardIndex });
             try {
-                const game = gameState.handleCardFlip(gameId, playerId, cardIndex);
-                if (game.success) {
-                    io.to(gameId).emit('gameStateUpdate', game.state);
+                const result = handleCardFlip(gameId, playerId, cardIndex);
+                if (result.success) {
+                    // Émettre l'état actuel
+                    io.to(gameId).emit('gameStateUpdate', result.state);
+        
+                    // Si c'est un mismatch, programmer le retournement des cartes
+                    if (result.action === 'mismatch') {
+                        setTimeout(() => {
+                            const game = games.get(gameId);
+                            if (!game) return;
+        
+                            // Retourner les cartes
+                            const { firstIndex, secondIndex, nextTurn } = result.data;
+                            game.cards[firstIndex].isFlipped = false;
+                            game.cards[secondIndex].isFlipped = false;
+                            game.selectedCards = [];
+                            game.currentTurn = nextTurn;
+        
+                            // Émettre le nouvel état
+                            io.to(gameId).emit('gameStateUpdate', game);
+                        }, 1000);
+                    }
                 } else {
-                    socket.emit('gameError', { message: game.error });
+                    socket.emit('gameError', { message: result.error });
                 }
             } catch (error) {
                 console.error('Erreur lors du retournement de carte:', error);

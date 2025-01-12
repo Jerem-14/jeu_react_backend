@@ -42,12 +42,19 @@ const app = fastify();
 await app.register(socketioServer, {
 	cors: {
 		origin: "http://localhost:5173",
-		methods: ["GET", "POST", "PATCH"],
+		methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 		credentials: true,
 		allowedHeaders: ["Content-Type", "Authorization"]
 	},
-	path: '/socket.io/',
-	transport: ['websocket', 'polling'],	
+	transports: ['polling', 'websocket'],
+    path: '/socket.io/',
+    // Retirons les configurations problématiques
+    pingTimeout: 30000,
+    pingInterval: 25000,
+    connectionStateRecovery: {
+        maxDisconnectionDuration: 2 * 60 * 1000,
+        skipMiddlewares: true,
+    }
 })
     .register(fastifyBcrypt, {
         saltWorkFactor: 12,
@@ -104,6 +111,24 @@ await app.register(socketioServer, {
         root: join(__dirname, '../uploads'),
         prefix: '/uploads/'
     });
+
+	app.ready(() => {
+		console.log('Socket.IO est initialisé');
+		console.log('Routes disponibles:', app.printRoutes());
+		
+		// Écouteur d'événements pour la connexion Socket.IO
+		app.io.on('connection', (socket) => {
+			console.log('Nouvelle connexion Socket.IO:', socket.id);
+			
+			socket.on('disconnect', () => {
+				console.log('Déconnexion Socket.IO:', socket.id);
+			});
+			
+			socket.on('error', (error) => {
+				console.error('Erreur Socket.IO:', error);
+			});
+		});
+	});
 
 /**********
  * Routes

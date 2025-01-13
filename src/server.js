@@ -46,7 +46,8 @@ await app.register(socketioServer, {
 		credentials: true,
 		allowedHeaders: ["Content-Type", "Authorization"]
 	},
-	transports: ['polling', 'websocket'],
+	//transports: ['polling', 'websocket'],
+	transports: ['websocket', 'polling'],
     path: '/socket.io/',
     // Retirons les configurations problématiques
     pingTimeout: 30000,

@@ -227,6 +227,54 @@ export async function calculateUserStats(userId) {
 	}
   }
 
+  export async function getUserStats(userId) {
+    try {
+        const games = await Game.findAll({
+            where: {
+                [Op.or]: [
+                    { creator: userId },
+                    { player: userId }
+                ],
+                state: 'finished'
+            }
+        });
+
+        const stats = {
+            totalGames: games.length,
+            wins: 0,
+            losses: 0,
+            ties: 0,
+            bestScore: 0,
+            winRate: 0
+        };
+
+        games.forEach(game => {
+            // Mise à jour du meilleur score
+            if (game.winnerScore > stats.bestScore && game.winner === userId) {
+                stats.bestScore = game.winnerScore;
+            }
+
+            // Comptage des résultats
+            if (game.winner === userId) {
+                stats.wins++;
+            } else if (game.winner === null) {
+                stats.ties++;
+            } else {
+                stats.losses++;
+            }
+        });
+
+        // Calcul du taux de victoire
+        stats.winRate = stats.totalGames > 0 
+            ? Math.round((stats.wins / stats.totalGames) * 100) 
+            : 0;
+
+        return stats;
+    } catch (error) {
+        return { error: "Erreur lors de la récupération des statistiques" };
+    }
+}
+
   export async function updateUser(userId, userData) {
     try {
         const user = await User.findByPk(userId);

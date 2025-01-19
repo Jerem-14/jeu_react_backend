@@ -181,16 +181,25 @@ const start = async () => {
                     error
                 );
             });
-            
-        await app.listen({ port: 3000 });
-        console.log(
-            "Serveur Fastify lancé sur " + chalk.blue("http://localhost:3000")
-        );
-        console.log(
-            chalk.bgYellow(
-                "Accéder à la documentation sur http://localhost:3000/documentation"
-            )
-        );
+         const port = process.env.PORT || 3000;
+         const isDevelopment = process.env.NODE_ENV !== 'PROD';
+         await app.listen({ 
+             port: port,
+             host: '0.0.0.0'  // Très important pour Render !
+         });
+         if (isDevelopment) {
+            console.log(
+                "Serveur Fastify lancé sur " + chalk.blue(`http://localhost:${port}`)
+            );
+            console.log(
+                chalk.bgYellow(
+                    `Accéder à la documentation sur http://localhost:${port}/documentation`
+                )
+            );
+        } else {
+            console.log(`Serveur démarré sur le port ${port}`);
+            console.log(`Documentation disponible sur /documentation`);
+        }
 
         // Configuration des gestionnaires de socket
         setupSocketHandlers(app.io);

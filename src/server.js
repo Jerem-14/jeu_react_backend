@@ -115,7 +115,6 @@ await app.register(socketioServer, {
 
 	app.ready(() => {
 		console.log('Socket.IO est initialisé');
-		console.log('Routes disponibles:', app.printRoutes());
 		
 		// Écouteur d'événements pour la connexion Socket.IO
 		app.io.on('connection', (socket) => {

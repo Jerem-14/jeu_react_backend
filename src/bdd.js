@@ -2,6 +2,7 @@ import { Sequelize } from "@sequelize/core";
 import { MySqlDialect } from "@sequelize/mysql";
 import dotenv from "dotenv";
 
+
 dotenv.config();
 
 const isDevelopment = process.env.NODE_ENV !== 'PROD';
@@ -16,9 +17,12 @@ export const sequelize = new Sequelize({
     host: process.env.DB_HOST || "localhost",
     port: parseInt(process.env.DB_PORT) || 3306,
     ...(isDevelopment ? {} : {
-        ssl: {
-            require: true,
-            rejectUnauthorized: true
+        ssl: true,
+        dialectOptions: {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
         }
     }),
     pool: {

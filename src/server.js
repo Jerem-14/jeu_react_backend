@@ -41,7 +41,7 @@ const app = fastify();
 //Ajout du plugin fastify-bcrypt pour le hash du mdp
 await app.register(socketioServer, {
 	cors: {
-		origin: ["http://localhost:5173", "https://jeu-react-backend.onrender.com"],
+		origin: ["http://localhost:5173", "https://jeu-react-backend.onrender.com", "https://meme-on-rit-neon.vercel.app"],
 		methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 		credentials: true,
 		allowedHeaders: ["Content-Type", "Authorization"]
@@ -61,7 +61,7 @@ await app.register(socketioServer, {
         saltWorkFactor: 12,
     })
     .register(cors, {
-        origin: ["http://localhost:5173", "https://jeu-react-backend.onrender.com"],
+        origin: ["http://localhost:5173", "https://jeu-react-backend.onrender.com", "https://meme-on-rit-neon.vercel.app"],
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization", "Accept"],
         exposedHeaders: ["Content-Range", "X-Content-Range"],

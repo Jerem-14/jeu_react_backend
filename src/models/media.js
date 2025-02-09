@@ -1,6 +1,7 @@
 import { DataTypes } from "@sequelize/core";
 import { sequelize } from "../bdd.js";
 
+
 const Media = sequelize.define("media", {
     id: {
         type: DataTypes.UUID,
@@ -14,7 +15,7 @@ const Media = sequelize.define("media", {
     url: {
         type: DataTypes.STRING,
         get() {
-            return `http://localhost:3000${this.getDataValue('url')}`;
+            return `${BASE_URL}${this.getDataValue('url')}`;
         }
     },
     filename: {

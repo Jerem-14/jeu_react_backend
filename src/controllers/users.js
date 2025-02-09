@@ -114,22 +114,42 @@ export async function registerUser(userDatas, bcrypt) {
 }
 export async function loginUser(userDatas, app) {
 	if (!userDatas) {
-		return { error: "Aucune donnée n'a été envoyée" };
+		return {
+            success: false,
+            error: {
+                type: 'MISSING_DATA',
+                message: "Aucune donnée n'a été envoyée"
+            }
+        };
 	}
 	const { email, password } = userDatas;
 	if (!email || !password) {
-		return { error: "Tous les champs sont obligatoires" };
+		return {
+            success: false,
+            error: {
+                type: 'MISSING_FIELDS',
+                message: "Tous les champs sont obligatoires"
+            }
+        };
 	}
 	//vérification que l'email est utilisé
 	const { count, rows } = await findAndCountAllUsersByEmail(email);
 	if (count === 0) {
 		return {
-			error: "Il n'y a pas d'utilisateur associé à cette adresse email.",
-		};
+            success: false,
+            error: {
+                type: 'USER_NOT_FOUND',
+                message: "Il n'y a pas d'utilisateur associé à cette adresse email."
+            }
+        };
 	} else if (rows[0].verified === false) {
 		return {
-			error: "Votre compte n'est pas encore vérifié. Veuillez vérifier votre boîte mail.",
-		};
+            success: false,
+            error: {
+                type: 'ACCOUNT_NOT_VERIFIED',
+                message: "Votre compte n'est pas encore vérifié. Veuillez vérifier votre boîte mail."
+            }
+        };
 	}
 	//récupération de l'utilisateur
 	const user = await User.findOne({
@@ -142,14 +162,20 @@ export async function loginUser(userDatas, app) {
 	//comparaison des mots de passe
 	const match = await app.bcrypt.compare(password, user.password);
 	if (!match) {
-		return { error: "Mot de passe incorrect" };
+		return {
+            success: false,
+            error: {
+                type: 'INVALID_PASSWORD',
+                message: "Mot de passe incorrect"
+            }
+        };
 	}
 	// Générer le JWT après une authentification réussie
 	const token = app.jwt.sign(
 		{ id: user.id, username: user.username },
 		{ expiresIn: "3h" }
 	);
-	return { success: true, data: { token, userId: user.id } };
+	return { success: true, data: { token, userId: user.id, username: user.username } };
 }
 
 export async function verifyEmailToken(token, reply){

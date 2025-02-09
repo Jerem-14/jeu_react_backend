@@ -15,7 +15,7 @@ const Media = sequelize.define("media", {
     url: {
         type: DataTypes.STRING,
         get() {
-            return `${VITE_API_URL}${this.getDataValue('url')}`;
+            return `${process.env.BASE_URL}${this.getDataValue('url')}`;
         }
     },
     filename: {

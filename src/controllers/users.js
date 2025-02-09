@@ -193,7 +193,7 @@ export async function verifyEmailToken(token, reply){
 	}
 
 	await User.update({verified: true}, {where: {id:user.id}});
-	reply.redirect(process.env.CLIENT_URL + 'http://localhost:5173/login?verified=true'); // Redirection vers la page de login
+	reply.redirect(process.env.CLIENT_URL + '/login?verified=true'); // Redirection vers la page de login
 }
 
 // Add to controllers/users.js

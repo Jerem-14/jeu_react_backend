@@ -105,7 +105,7 @@ export async function registerUser(userDatas, bcrypt) {
 
 	await User.create(user);
 
-	const urlMail = "http://localhost:3000/verify?token=" + token 
+	const urlMail = process.env.BASE_URL + "/verify?token=" + token 
 	const emailHtml = generateEmailTemplate(urlMail);
 	sendConfirmationEmail(email, emailHtml);
 

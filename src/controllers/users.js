@@ -187,13 +187,13 @@ export async function verifyEmailToken(token, reply){
 
 	if(!user){
 		console.log("Pas le bon utilisateur");
-        reply.redirect('http://localhost:5173/login?error=invalid_token'); // Redirection vers la page de login avec un message d'erreur
+        reply.redirect(process.env.BASE_URL + '/login?error=invalid_token'); // Redirection vers la page de login avec un message d'erreur
         return;
 		
 	}
 
 	await User.update({verified: true}, {where: {id:user.id}});
-	reply.redirect('http://localhost:5173/login?verified=true'); // Redirection vers la page de login
+	reply.redirect(process.env.BASE_URL + '/login?verified=true'); // Redirection vers la page de login
 }
 
 // Add to controllers/users.js

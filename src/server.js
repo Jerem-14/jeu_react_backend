@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import fs from 'fs/promises';
 //pour fastify
 import fastify from "fastify";
 import fastifyBcrypt from "fastify-bcrypt";
@@ -17,6 +18,9 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+
+const UPLOAD_DIR = join(__dirname, '../uploads');
+await fs.mkdir(UPLOAD_DIR, { recursive: true });
 //routes
 import { usersRoutes } from "./routes/users.js";
 import { gamesRoutes } from "./routes/games.js";
@@ -110,7 +114,8 @@ await app.register(socketioServer, {
     })
     .register(fastifyStatic, {
         root: join(__dirname, '../uploads'),
-        prefix: '/uploads/'
+        prefix: '/uploads/',
+        decorateReply: false
     });
 
 	app.ready(() => {

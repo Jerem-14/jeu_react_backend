@@ -15,7 +15,10 @@ const Media = sequelize.define("media", {
     url: {
         type: DataTypes.STRING,
         get() {
-            return `${process.env.BASE_URL}${this.getDataValue('url')}`;
+            const baseUrl = process.env.NODE_ENV === 'PROD' 
+                ? process.env.BASE_URL 
+                : 'http://localhost:3000';
+            return `${baseUrl}${this.getDataValue('url')}`;
         }
     },
     filename: {

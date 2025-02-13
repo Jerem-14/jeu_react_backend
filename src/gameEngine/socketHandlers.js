@@ -3,6 +3,42 @@ import { games, handleCardFlip, initializeGame, addPlayer, getGameState } from '
 import Media from '../models/media.js';
 import Game from '../models/games.js';
 
+
+
+// Nouvelle fonction pour sauvegarder l'état
+async function saveGameState(gameId) {
+    try {
+        const currentState = games.get(gameId);
+        if (!currentState) return;
+
+        await Game.update({
+            currentState: currentState,
+            lastUpdate: new Date()
+        }, {
+            where: { id: gameId }
+        });
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde de l\'état:', error);
+    }
+}
+
+// Nouvelle fonction pour restaurer l'état
+async function restoreGameState(gameId) {
+    try {
+        const gameRecord = await Game.findByPk(gameId);
+        if (!gameRecord || !gameRecord.currentState) return null;
+
+        const savedState = gameRecord.currentState;
+        games.set(gameId, savedState);
+        return savedState;
+    } catch (error) {
+        console.error('Erreur lors de la restauration de l\'état:', error);
+        return null;
+    }
+}
+
+
+
 export function setupSocketHandlers(io) {
     // Map pour suivre les connexions socket-utilisateur
     const userSockets = new Map();
@@ -71,6 +107,18 @@ export function setupSocketHandlers(io) {
             }
         });
 
+        socket.on('rejoinGame', async ({ gameId, userId }) => {
+            try {
+                const savedState = await restoreGameState(gameId);
+                if (savedState) {
+                    socket.join(gameId);
+                    socket.emit('gameStateUpdate', savedState);
+                }
+            } catch (error) {
+                console.error('Erreur lors de la reconnexion:', error);
+            }
+        });
+
         socket.on('initiateGameStart', ({ gameId }) => {
             try {
                 console.log('Démarrage de la partie:', gameId);
@@ -88,6 +136,8 @@ export function setupSocketHandlers(io) {
                 if (result.success) {
                     // Émettre l'état actuel
                     io.to(gameId).emit('gameStateUpdate', result.state);
+
+                    await saveGameState(gameId); //sauvegarde apres chaque coup
         
                     // Si la partie est terminée
                     if (result.gameOver) {
@@ -133,7 +183,7 @@ export function setupSocketHandlers(io) {
 
                     // Si c'est un mismatch, programmer le retournement des cartes
                     if (result.action === 'mismatch') {
-                        setTimeout(() => {
+                        setTimeout(async () => {
                             const game = games.get(gameId);
                             if (!game) return;
         
@@ -146,6 +196,7 @@ export function setupSocketHandlers(io) {
         
                             // Émettre le nouvel état
                             io.to(gameId).emit('gameStateUpdate', game);
+                            await saveGameState(gameId);
                         }, 1000);
                     }
                 } else {

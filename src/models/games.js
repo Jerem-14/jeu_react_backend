@@ -17,6 +17,18 @@ const Game = sequelize.define("game", {
 		allowNull: false,
 		defaultValue: "pending",
 	},
+	// Nouvel attribut pour stocker l'état du jeu
+    currentState: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: 'Stocke l\'état actuel du jeu (cartes, scores, tour actuel)'
+    },
+    // Attribut pour suivre la dernière mise à jour
+    lastUpdate: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+        allowNull: false
+    }
 });
 Game.belongsTo(User, { targetKey: "id", foreignKey: "creator", as: "player1" });
 Game.belongsTo(User, {

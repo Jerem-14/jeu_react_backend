@@ -1,4 +1,4 @@
-import { createGame, updateGame } from "../controllers/games.js";
+import { createGame, updateGame, deleteGame } from "../controllers/games.js";
 export function gamesRoutes(app) {
 	//création d'un jeu
 	app.post(
@@ -16,4 +16,14 @@ export function gamesRoutes(app) {
 			reply.send(await updateGame(request));
 		}
 	);
+	app.delete(
+        "/game/:gameId",
+        { preHandler: [app.authenticate] },
+        async (request, reply) => {
+			console.log('Token décodé:', request.user); // Ajoutons ce log
+        const userId = request.user.id;
+        console.log('UserId extrait:', userId); // Et celui-ci
+            reply.send(await deleteGame(request.params.gameId, userId));
+        }
+    );
 }

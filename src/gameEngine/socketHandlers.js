@@ -142,41 +142,82 @@ export function setupSocketHandlers(io) {
                     // Si la partie est terminée
                     if (result.gameOver) {
                         try {
-                            // Déterminer le gagnant et son score
                             const winners = result.state.winners;
                             const isDraw = winners.length > 1;
                     
-                            // On calcule le score le plus élevé une seule fois
-                            const highestScore = Math.max(
-                                ...Object.values(result.state.players)
-                                    .map(player => player.score)
-                            );
+                            const players = Object.values(result.state.players);
+                            console.log('État complet:', result.state);  // Ajout pour debug
                     
-                            // Mettre à jour la base de données
-                            await Game.update({
+                            // Récupérons d'abord la partie depuis la base de données pour avoir l'ID du créateur
+                            const gameData = await Game.findByPk(gameId);
+                            if (!gameData) {
+                                throw new Error('Partie non trouvée');
+                            }
+                    
+                            // Utilisons l'ID du créateur depuis la base de données
+                            const creator = players.find(p => p.id === gameData.creator);
+                            const joiner = players.find(p => p.id !== gameData.creator);
+                    
+                            console.log('Game data:', {
+                                dbCreatorId: gameData.creator,
+                                players: players,
+                                foundCreator: creator,
+                                foundJoiner: joiner
+                            });
+                    
+                            if (!creator || !joiner) {
+                                console.error('Détails des joueurs:', {
+                                    players,
+                                    creatorId: gameData.creator,
+                                    creatorFound: creator,
+                                    joinerFound: joiner
+                                });
+                                throw new Error('Impossible de déterminer les joueurs');
+                            }
+                    
+                            const updateData = {
                                 state: 'finished',
                                 winner: isDraw ? null : winners[0].id,
-                                winnerScore: highestScore
-                            }, {
+                                winnerScore: Math.max(creator.score, joiner.score),
+                                player1Score: creator.score,
+                                player2Score: joiner.score
+                            };
+                    
+                            console.log('Données de mise à jour:', updateData);
+                    
+                            await Game.update(updateData, {
                                 where: { id: gameId }
                             });
                     
-                            console.log('Base de données mise à jour avec succès:', {
-                                gameId,
-                                winner: isDraw ? 'Match nul' : winners[0].id,
-                                winnerScore: highestScore
-                            });
-                    
-                            // Émettre l'événement gameOver comme avant
                             io.to(gameId).emit('gameOver', {
                                 winners: result.state.winners,
                                 isDraw: result.state.isDraw,
-                                finalScores: result.state.players
+                                finalScores: {
+                                    creator: {
+                                        id: creator.id,
+                                        username: creator.username,
+                                        score: creator.score
+                                    },
+                                    joiner: {
+                                        id: joiner.id,
+                                        username: joiner.username,
+                                        score: joiner.score
+                                    }
+                                }
                             });
+                    
                         } catch (dbError) {
-                            console.error('Erreur lors de la mise à jour de la base de données:', dbError);
+                            console.error('Détails de l\'erreur:', {
+                                message: dbError.message,
+                                stack: dbError.stack,
+                                name: dbError.name,
+                                additionalInfo: {
+                                    gameId,
+                                    playersState: result.state.players
+                                }
+                            });
                             socket.emit('gameError', { 
-                                message: 'Erreur lors de la sauvegarde des résultats'
+                                message: `Erreur lors de la sauvegarde des résultats : ${dbError.message}`
                             });
                         }
                     }

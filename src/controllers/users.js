@@ -247,10 +247,57 @@ export async function calculateUserStats(userId) {
 		  { model: User, as: 'winPlayer', attributes: ['username'] }
 		],
 		order: [['createdAt', 'DESC']],
-		limit: 10 // Get last 10 games
+		limit: 20 // Get last 10 games
 	  });
+
+
+
+	  const enrichedGames = games.map(game => {
+		const gameData = game.toJSON();
+		const isCreator = game.creator === userId;
+		
+		// Ne calculer les scores que si la partie est terminée
+		if (game.state === 'finished') {
+			const userScore = isCreator ? game.player1Score : game.player2Score;
+			const opponentScore = isCreator ? game.player2Score : game.player1Score;
+			
+			return {
+				...gameData,
+				userScore,
+				opponentScore,
+				gameType: game.winner === userId ? 'Victoire' : 
+						 game.winner === null ? 'Égalité' : 'Défaite',
+			};
+		} else if (game.state === 'playing' && game.currentState) {
+			// Extraire les scores actuels de currentState
+			const currentState = game.currentState;
+			const userScore = isCreator 
+				? currentState.players[game.creator]?.score 
+				: currentState.players[game.player]?.score;
+			const opponentScore = isCreator 
+				? currentState.players[game.player]?.score 
+				: currentState.players[game.creator]?.score;
+
+			return {
+				...gameData,
+				gameType: 'En cours',
+				userScore,
+				opponentScore,
+				currentGame: true
+			};
+		}
+		
+		// Pour les parties en cours ou en attente
+		return {
+			...gameData,
+			gameType: 'En attente',
+			userScore: null,
+			opponentScore: null
+		};
+	});
+
   
-	  return { success: true, data: games };
+	  return { success: true, data: enrichedGames  };
 	} catch (error) {
 	  return { success: false, error: error.message };
 	}

@@ -12,6 +12,25 @@ const Game = sequelize.define("game", {
 		type: DataTypes.INTEGER,
 		allowNull: true,
 	},
+	// Ajout des scores finaux pour chaque joueur
+    player1Score: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Score final du créateur de la partie',
+		validate: {
+			min: 0,
+			isInt: true
+		}
+    },
+    player2Score: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Score final du joueur qui a rejoint la partie',
+		validate: {
+			min: 0,
+			isInt: true
+		}
+    },
 	state: {
 		type: DataTypes.ENUM("pending", "playing", "finished"),
 		allowNull: false,

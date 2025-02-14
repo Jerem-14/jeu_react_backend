@@ -196,41 +196,6 @@ export async function verifyEmailToken(token, reply){
 	reply.redirect(process.env.CLIENT_URL + '/login?verified=true'); // Redirection vers la page de login
 }
 
-// Add to controllers/users.js
-export async function calculateUserStats(userId) {
-	const games = await Game.findAll({
-	  where: {
-		[Op.or]: [
-		  { creator: userId },
-		  { player: userId }
-		],
-		state: 'finished'
-	  }
-	});
-	
-	let stats = {
-	  totalGames: games.length,
-	  wins: 0,
-	  losses: 0,
-	  ties: 0
-	};
-	
-	games.forEach(game => {
-	  if (game.winner === userId) {
-		stats.wins++;
-	  } else if (game.winner === null) {
-		stats.ties++;
-	  } else {
-		stats.losses++;
-	  }
-	});
-	
-	stats.winRate = stats.totalGames > 0 
-	  ? Math.round((stats.wins / stats.totalGames) * 100) 
-	  : 0;
-	  
-	return stats;
-  }
 
   export async function getUserGames(userId) {
 	try {
@@ -305,6 +270,16 @@ export async function calculateUserStats(userId) {
 
   export async function getUserStats(userId) {
     try {
+        const user = await User.findByPk(userId);
+        
+        if (!user) {
+            console.error('Utilisateur non trouvé dans getUserStats');
+            return { 
+                success: false, 
+                error: "Utilisateur non trouvé" 
+            };
+        }
+
         const games = await Game.findAll({
             where: {
                 [Op.or]: [
@@ -320,17 +295,11 @@ export async function calculateUserStats(userId) {
             wins: 0,
             losses: 0,
             ties: 0,
-            bestScore: 0,
-            winRate: 0
+            winRate: 0,
+            bestScrore: user.bestScrore // Assurons-nous que c'est bien inclus
         };
 
         games.forEach(game => {
-            // Mise à jour du meilleur score
-            if (game.winnerScore > stats.bestScore && game.winner === userId) {
-                stats.bestScore = game.winnerScore;
-            }
-
-            // Comptage des résultats
             if (game.winner === userId) {
                 stats.wins++;
             } else if (game.winner === null) {
@@ -340,14 +309,21 @@ export async function calculateUserStats(userId) {
             }
         });
 
-        // Calcul du taux de victoire
         stats.winRate = stats.totalGames > 0 
             ? Math.round((stats.wins / stats.totalGames) * 100) 
             : 0;
 
-        return stats;
+        return {
+            success: true,
+            data: stats
+        };
+
     } catch (error) {
-        return { error: "Erreur lors de la récupération des statistiques" };
+        console.error('Erreur complète dans getUserStats:', error);
+        return { 
+            success: false, 
+            error: error.message 
+        };
     }
 }
 

@@ -2,6 +2,7 @@
 import { games, handleCardFlip, initializeGame, addPlayer, getGameState } from './gameState.js';
 import Media from '../models/media.js';
 import Game from '../models/games.js';
+import User from '../models/users.js';
 
 
 
@@ -146,9 +147,8 @@ export function setupSocketHandlers(io) {
                             const isDraw = winners.length > 1;
                     
                             const players = Object.values(result.state.players);
-                            console.log('État complet:', result.state);  // Ajout pour debug
-                    
-                            // Récupérons d'abord la partie depuis la base de données pour avoir l'ID du créateur
+                            //console.log('État complet:', result.state);  
+
                             const gameData = await Game.findByPk(gameId);
                             if (!gameData) {
                                 throw new Error('Partie non trouvée');
@@ -158,12 +158,12 @@ export function setupSocketHandlers(io) {
                             const creator = players.find(p => p.id === gameData.creator);
                             const joiner = players.find(p => p.id !== gameData.creator);
                     
-                            console.log('Game data:', {
+                            /* console.log('Game data:', {
                                 dbCreatorId: gameData.creator,
                                 players: players,
                                 foundCreator: creator,
                                 foundJoiner: joiner
-                            });
+                            }); */
                     
                             if (!creator || !joiner) {
                                 console.error('Détails des joueurs:', {
@@ -174,6 +174,74 @@ export function setupSocketHandlers(io) {
                                 });
                                 throw new Error('Impossible de déterminer les joueurs');
                             }
+
+
+                            console.log('Modèle User disponible:', {
+                                modelExists: !!User,
+                                modelProperties: Object.keys(User)
+                            });
+                            
+                        // Juste avant la mise à jour du créateur
+                        //console.log('Tentative de mise à jour des meilleurs scores...');
+
+                        // Récupération des utilisateurs
+                        const creatorUser = await User.findByPk(creator.id);
+                        const joinerUser = await User.findByPk(joiner.id);
+
+                        // Logs avant mise à jour
+                        /* console.log('Données des utilisateurs avant mise à jour:', {
+                            creator: {
+                                id: creator.id,
+                                currentScore: creator.score,
+                                bestScroreInDB: creatorUser?.bestScrore
+                            },
+                            joiner: {
+                                id: joiner.id,
+                                currentScore: joiner.score,
+                                bestScroreInDB: joinerUser?.bestScrore
+                            }
+                        }); */
+
+                        // Mise à jour du créateur
+                        if (creatorUser) {
+                            if (creatorUser.bestScrore === null || creator.score > creatorUser.bestScrore) {
+                                try {
+                                    await creatorUser.update({ bestScrore: creator.score });
+                                    console.log('Score créateur mis à jour:', creator.score);
+                                } catch (updateError) {
+                                    console.error('Erreur mise à jour créateur:', updateError);
+                                }
+                            }
+                        }
+
+                        // Mise à jour du joiner
+                        if (joinerUser) {
+                            if (joinerUser.bestScrore === null || joiner.score > joinerUser.bestScrore) {
+                                try {
+                                    await joinerUser.update({ bestScrore: joiner.score });
+                                    console.log('Score joiner mis à jour:', joiner.score);
+                                } catch (updateError) {
+                                    console.error('Erreur mise à jour joiner:', updateError);
+                                }
+                            }
+                        }
+
+
+
+                        // Après les mises à jour
+                        const verificationCreator = await User.findByPk(creator.id);
+                        const verificationJoiner = await User.findByPk(joiner.id);
+
+                        /* console.log('Vérification après mise à jour:', {
+                            creator: {
+                                id: creator.id,
+                                nouveauScore: verificationCreator?.bestScrore
+                            },
+                            joiner: {
+                                id: joiner.id,
+                                nouveauScore: verificationJoiner?.bestScrore
+                            }
+                        }); */
                     
                             const updateData = {
                                 state: 'finished',

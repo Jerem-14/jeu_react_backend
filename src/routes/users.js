@@ -1,10 +1,10 @@
 import {
 	getUserById,
 	getUsers,
+	getUserStats,
 	loginUser,
 	registerUser,
 	verifyEmailToken,
-	calculateUserStats,
 	getUserGames,
 	updateUser
 } from "../controllers/users.js";
@@ -42,7 +42,7 @@ export function usersRoutes(app, blacklistedTokens ) {
 	});
 	app.get("/users/:id/stats", async (request, reply) => {
 		// Calculate stats from games table
-		const stats = await calculateUserStats(request.params.id);
+		const stats = await getUserStats(request.params.id);
 		reply.send(stats);
 	});
 	app.get("/users/:id/games", async (request, reply) => {
